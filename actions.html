@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Справка по текстовому редактору</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        p {
+            margin-bottom: 10px;
+        }
+        ul {
+            margin-bottom: 10px;
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin-left: 20px;
+            position: relative;
+        }
+        li ul {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 100%;
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            padding: 10px;
+            z-index: 1;
+        }
+        li ul li {
+            margin-left: 0; /* Adjust margin to prevent overlap */
+        }
+    </style>
+</head>
+<body>
+    <h1>Справка по текстовому редактору</h1>
+    
+    <h2>Действия</h2>
+    
+
+            <li>
+                <strong>Обработка регулярных выражений</strong>: 
+                <p>Приложение обрабатывает текст и находит российские номера телефонов. Номер должен начинаться с «+7», либо «8». Действительные коды регионов России: 900 – 969, 977 – 989, 991 – 999. Форматы записи номера мобильного телефона: +7/8 999 9999999, +7/8 (999) 9999999, +7/8 (999) 999-99-99, +7/89999999999. Разделители: ; . ,. Формат языка L(R)={(8|+7)(c(-^n| ^n, n=1)|(-^n| ^n, n=0)d(-^n| ^n, n=1)|(-^n| ^n, n=0)e^2)}. c - коды действительных номеров России. d - 3 последуюющие цифры. e - 2 предпоследние/последние цифры номера.</p>
+            </li>
+            <li>
+                <div>                    
+                    <strong>Детерминированный конечный автомат</strong>: 
+
+                </div>
+            </li>
+            <li>
+                <img src="DKA.jpg" alt="Детерминированный конечный автомат">
+            </li>
+              
+    
+</body>
+</html>
