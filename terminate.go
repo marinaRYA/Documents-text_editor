@@ -2,143 +2,251 @@ package main
 
 import (
 	"fmt"
-	"strconv"
+
+	//"strconv"
 	"strings"
 	"unicode"
 )
 
-type State int
-
-const (
-	Start State = iota
-	CountryCode
-	AreaCode
-	ExchangeCode
-	SubscriberNumber
-	End
-)
-
-type PhoneNumberFSM struct {
-	currentState State
+type PhoneNumberInfoDKA struct {
+	Number    string
+	Start     int
+	End       int
+	Statepath string
 }
 
-func NewPhoneNumberFSM() *PhoneNumberFSM {
-	return &PhoneNumberFSM{
-		currentState: Start,
-	}
-}
-
-func (fsm *PhoneNumberFSM) Process(input string, offset int) PhoneNumberInfo {
-	var phoneNumber PhoneNumberInfo
+func Process(input string, offset int) PhoneNumberInfoDKA {
+	var phoneNumber PhoneNumberInfoDKA
+	count := 0
+	c := 0
 	start := 0
 	end := 0
-	for i := 0; i < len(input); i++ {
-		char := rune(input[i])
-		switch fsm.currentState {
-		case Start:
-			if char == '8' {
+	states := map[string]func(rune) string{
+		"Start": func(ch rune) string {
+			switch {
+			case ch == '+':
+				return "S0"
+			case ch == '8':
+				return "CC"
+			default:
+				return "Start"
+			}
+		},
+		"S0": func(ch rune) string {
+			switch {
+			case ch == '7':
+				return "CC"
+			default:
+				return "Start"
+			}
+		},
+		"CC": func(ch rune) string {
+			switch {
+			case ch == '(':
+				return "S3"
+			case ch == ' ':
+				return "S7"
+			case ch == '9':
+				return "S1"
+			default:
+				return "Start"
+			}
+		},
+		"S1": func(ch rune) string {
+
+			if unicode.IsDigit(ch) {
+				c++
+				if c == 9 {
+					return "End"
+				}
+				return "S1"
+			}
+			return "Start"
+		},
+		"S3": func(ch rune) string {
+			if unicode.IsDigit(ch) {
+				return "S4"
+			}
+			return "Start"
+		},
+		"S4": func(ch rune) string {
+			if unicode.IsDigit(ch) {
+				return "S5"
+			}
+			return "Start"
+		},
+		"S5": func(ch rune) string {
+			if unicode.IsDigit(ch) {
+				return "S6"
+			}
+			return "Start"
+		},
+		"S6": func(ch rune) string {
+			if ch == ')' {
+				return "AC"
+			}
+			return "Start"
+		},
+		"S7": func(ch rune) string {
+			if unicode.IsDigit(ch) {
+				return "S8"
+			}
+			return "Start"
+		},
+		"S8": func(ch rune) string {
+			if unicode.IsDigit(ch) {
+				return "S9"
+			}
+			return "Start"
+		},
+		"S9": func(ch rune) string {
+			if unicode.IsDigit(ch) {
+				return "S10"
+			}
+			return "Start"
+		},
+		"S10": func(ch rune) string {
+			if ch == ' ' {
+				return "AC"
+			}
+			return "Start"
+		},
+		"AC": func(ch rune) string {
+
+			if unicode.IsDigit(ch) {
+				count++
+				if count == 3 {
+					return "EC"
+				}
+				return "AC"
+			}
+			return "Start"
+		},
+		"EC": func(ch rune) string {
+			switch {
+			case ch == '-':
+				return "S11"
+			case ch == ' ':
+				return "S16"
+			default:
+				return "Start"
+			}
+		},
+		"S11": func(ch rune) string {
+			if unicode.IsDigit(ch) {
+				return "S12"
+			}
+			return "Start"
+		},
+		"S12": func(ch rune) string {
+			if unicode.IsDigit(ch) {
+				return "S13"
+			}
+			return "Start"
+		},
+		"S13": func(ch rune) string {
+			if ch == '-' {
+				return "S14"
+			}
+			return "Start"
+		},
+		"S14": func(ch rune) string {
+			if unicode.IsDigit(ch) {
+				return "S15"
+			}
+			return "Start"
+		},
+		"S15": func(ch rune) string {
+			if unicode.IsDigit(ch) {
+				return "End"
+			}
+			return "Start"
+		},
+		"S16": func(ch rune) string {
+			if unicode.IsDigit(ch) {
+				return "S17"
+			}
+			return "Start"
+		},
+		"S17": func(ch rune) string {
+			if unicode.IsDigit(ch) {
+				return "S18"
+			}
+			return "Start"
+		},
+		"S18": func(ch rune) string {
+			if ch == ' ' {
+				return "S19"
+			}
+			return "Start"
+		},
+		"S19": func(ch rune) string {
+			if unicode.IsDigit(ch) {
+				return "S20"
+			}
+			return "Start"
+		},
+		"S20": func(ch rune) string {
+			if unicode.IsDigit(ch) {
+				return "End"
+			}
+			return "Start"
+		},
+	}
+
+	// Начальное состояние
+	currentState := "Start"
+
+	var statepath strings.Builder
+	// Обработка входной строки
+	for i, ch := range input {
+		if nextState, exists := states[currentState]; exists {
+			if currentState == "Start" {
 				start = i
-				fsm.currentState = CountryCode
-			} else if char == '+' {
-				if input[i+1] == '7' {
-					start = i
-					fsm.currentState = CountryCode
-					i++
-				} else {
-					fsm.currentState = End
+			}
+			statepath.WriteString(fmt.Sprintf("%s-", currentState))
+			currentState = nextState(ch)
+			// Обновляем конечный индекс, если достигнуто конечное состояние или конец строки
+			if currentState == "End" {
+				statepath.WriteString(fmt.Sprintf("%s", currentState))
+				end = i + 1
+				phoneNumber = PhoneNumberInfoDKA{
+					Number:    input[start:end],
+					Start:     start + offset,
+					End:       end + offset,
+					Statepath: statepath.String(),
 				}
+				return phoneNumber
 			}
-
-		case CountryCode:
-			if (char == ' ' || char == '-' || char == '(') && input[i+1] == '9' {
-				if char == '(' && input[i+4] != ')' {
-					fsm.currentState = End
-					break
-				}
-				continue
-			} else {
-				codeChar := string(char) + string(input[i+1]) + string(input[i+2])
-				code, err := strconv.Atoi(codeChar)
-				if err == nil && ((code >= 900 && code <= 969) || (code >= 977 && code <= 989) || (code >= 991 && code <= 999)) {
-					i += 2
-					fsm.currentState = AreaCode
-				} else {
-					fsm.currentState = End
-				}
-			}
-
-		case AreaCode:
-			if char == ' ' || char == '-' || char == ')' {
-				continue
-			} else if unicode.IsDigit(char) && unicode.IsDigit(rune(input[i+1])) && unicode.IsDigit(rune(input[i+2])) {
-				i += 2
-				fsm.currentState = ExchangeCode
-			} else {
-				fsm.currentState = End
-			}
-
-		case ExchangeCode:
-			if char == ' ' || char == '-' {
-				continue
-			} else if unicode.IsDigit(char) && unicode.IsDigit(rune(input[i+1])) {
-				i++
-				fsm.currentState = SubscriberNumber
-			} else {
-				fsm.currentState = End
-			}
-
-		case SubscriberNumber:
-			if char == ' ' || char == '-' {
-				continue
-			} else if unicode.IsDigit(char) && unicode.IsDigit(rune(input[i+1])) {
-				end = i + 2
-				i = len(input)
-			} else {
-				fsm.currentState = End
-			}
-
-		case End:
-			fsm.currentState = Start
 		}
 	}
-
-	if fsm.currentState == SubscriberNumber {
-		phoneNumber = PhoneNumberInfo{
-			Number: input[start:end],
-			Start:  start + offset,
-			End:    end + offset,
-		}
-	}
-
 	return phoneNumber
+
 }
 
-func terminate(text string) []PhoneNumberInfo {
-	fsm := NewPhoneNumberFSM()
+func terminate(text string) []PhoneNumberInfoDKA {
 	delimiters := ",.;\n"
 	offset := 0
 	inputs := strings.FieldsFunc(text, func(r rune) bool {
 		return strings.ContainsRune(delimiters, r)
 	})
 
-	var results []PhoneNumberInfo
+	var results []PhoneNumberInfoDKA
 	for _, input := range inputs {
-		phoneNumber := fsm.Process(input, offset)
+		phoneNumber := Process(input, offset)
 		if phoneNumber.Number != "" {
 			results = append(results, phoneNumber)
 		}
-		fsm.currentState = Start
-		offset += len(input) + len(delimiters)
+		offset += len(input)
 	}
 
 	return results
 }
-func phoneNumberInfoToString(phoneNumbers []PhoneNumberInfo) string {
+
+func phoneNumberInfoToString(phoneNumbers []PhoneNumberInfoDKA) string {
 	var builder strings.Builder
-
 	for _, phoneNumber := range phoneNumbers {
-		builder.WriteString(fmt.Sprintf("Номер: %s, Начальная позиция: %d\nСостояния:\n Start-CountryCode-AreaCode-ExchangeCode-SubscriberNumber\n", phoneNumber.Number, phoneNumber.Start))
+		builder.WriteString(fmt.Sprintf("Номер: %s, Начальная позиция: %d\nСостояния:%s\n ", phoneNumber.Number, phoneNumber.Start, phoneNumber.Statepath))
 	}
-
 	return builder.String()
 }
